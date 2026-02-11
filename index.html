@@ -695,6 +695,47 @@
         window.addEventListener('DOMContentLoaded', function () {
             mostrarPestaña('inicio');
         });
+        // KEYBOARD SHORTCUTS
+        document.addEventListener('keydown', function (event) {
+            // Alt + N: Nueva Factura
+            if (event.altKey && (event.key === 'n' || event.key === 'N')) {
+                event.preventDefault();
+                abrirModal();
+            }
+
+            // Alt + 1: Pestaña Inicio
+            if (event.altKey && event.key === '1') {
+                event.preventDefault();
+                mostrarPestaña('inicio');
+            }
+
+            // Alt + 2: Pestaña Base de Datos
+            if (event.altKey && event.key === '2') {
+                event.preventDefault();
+                mostrarPestaña('db');
+            }
+
+            // ESC: Cerrar Modal o Volver de Detalle
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('modal-form');
+                const detalle = document.getElementById('vista-detalle');
+
+                if (modal.style.display === 'flex') {
+                    cerrarModal();
+                } else if (detalle.style.display === 'block') {
+                    mostrarPestaña('inicio');
+                }
+            }
+
+            // ENTER: Guardar Factura (Solo si el modal está abierto)
+            if (event.key === 'Enter') {
+                const modal = document.getElementById('modal-form');
+                if (modal.style.display === 'flex') {
+                    event.preventDefault();
+                    guardarFactura();
+                }
+            }
+        });
     </script>
 
 </body>
