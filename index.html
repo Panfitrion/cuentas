@@ -524,16 +524,37 @@
 
             const facturasCafe = facturas.filter(f => f.cafe === cafe).sort((a, b) => b.id.localeCompare(a.id));
 
-            lista.innerHTML = facturasCafe.map(f => {
-                return `
-            <div class="kitchen-ticket">
+            const pendientes = facturasCafe.filter(f => !f.pagada);
+            const pagadas = facturasCafe.filter(f => f.pagada);
+
+            const renderFacturaHTML = (f) => `
+            <div class="kitchen-ticket" style="${f.pagada ? 'opacity: 0.7; border-top-color: var(--c-go);' : ''}">
                 <div class="ticket-header"><span>#${f.factura}</span><span class="mono">${mostrarRangoFormateado(f.rango)}</span></div>
                 <div class="ticket-body">$${f.monto}</div>
                 ${f.pagada
-                        ? `<span class="stamp-86">86'd (PAGADO)</span><button class="chef-btn" style="margin-top:10px;" onclick="desmarcar('${f.id}','${cafe}')">DESMARCAR</button>`
-                        : `<button class="chef-btn" onclick="pagar('${f.id}','${cafe}')">MARCAR PAGADA</button>`}
+                    ? `<div style="display:flex; justify-content:space-between; align-items:center;">
+                             <span class="stamp-86" style="position:static; transform:none; border:2px solid; padding:2px 8px; font-size:0.8em;">PAGADO</span>
+                             <button class="chef-btn" style="padding: 5px 10px; font-size: 0.8em;" onclick="desmarcar('${f.id}','${cafe}')">DESHACER</button>
+                           </div>`
+                    : `<button class="chef-btn" onclick="pagar('${f.id}','${cafe}')">MARCAR PAGADA</button>`}
             </div>`;
-            }).join('');
+
+            let html = pendientes.map(renderFacturaHTML).join('');
+
+            if (pagadas.length > 0) {
+                html += `
+                <details style="margin-top: 30px; border: 2px dashed #999; padding: 10px; background: rgba(0,0,0,0.02); border-radius: 4px;">
+                    <summary style="font-family: var(--font-heading); font-weight: bold; cursor: pointer; list-style: none; padding: 5px; user-select: none;">
+                        ▼ VER FACTURAS PAGADAS (${pagadas.length})
+                    </summary>
+                    <div style="margin-top: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;">
+                        ${pagadas.map(renderFacturaHTML).join('')}
+                    </div>
+                </details>
+                `;
+            }
+
+            lista.innerHTML = html;
         }
 
         async function desmarcar(id, cafe) {
