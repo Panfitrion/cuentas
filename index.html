@@ -130,7 +130,9 @@
     // SUPABASE CLIENT
     const SUPABASE_URL = 'https://bjuduoggpnvwjuqqbwuz.supabase.co'; // Reemplaza con tu URL
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWR1b2dncG52d2p1cXFid3V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwOTg5MDcsImV4cCI6MjA4NDY3NDkwN30.tCtLbpj4e3KvsB3uPbg3uQiZRPpOLlswiDtWwlsZUXE'; // Reemplaza con tu anon key
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Solo crea el cliente si no existe ya en window
+    window._supabaseClient = window._supabaseClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabase = window._supabaseClient;
 
     // BASE DE DATOS INICIAL
     let facturas = [];
