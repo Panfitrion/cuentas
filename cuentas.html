@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE BEAR // KITCHEN OS v2.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Permanent+Marker&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --c-steel: #E5E5EA; --c-steel-dark: #A1A1A6; --c-ink: #1C1C1E; --c-paper: #F2F2F7;
+            --c-tape-blue: #007AFF; --c-tape-cream: #F9F3D3; --c-panic: #FF3B30; --c-go: #34C759;
+            --font-heading: 'Oswald', sans-serif; --font-hand: 'Permanent Marker', cursive; --font-data: 'Roboto Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--c-steel); color: var(--c-ink); font-family: var(--font-heading);
+            height: 100vh; width: 100vw; overflow: hidden; margin: 0;
+            background-image: repeating-linear-gradient(90deg, transparent 0, transparent 1px, rgba(255, 255, 255, 0.1) 1px, rgba(255, 255, 255, 0.1) 2px), linear-gradient(180deg, #d4d4d8 0%, #e4e4e7 100%);
+        }
+
+        .app-container { padding: 24px; display: flex; flex-direction: column; height: 100%; max-width: 1200px; margin: 0 auto; }
+
+        /* HEADER */
+        .kitchen-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .brand-tape { background-color: var(--c-tape-blue); padding: 8px 24px; transform: rotate(1deg); box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3); }
+        .tape-text { font-family: var(--font-hand); color: white; font-size: 1.8rem; text-transform: uppercase; }
+
+        .stat-box { background: black; color: white; padding: 8px 16px; border: 2px solid white; display: flex; flex-direction: column; align-items: center; }
+        .stat-box .value { font-weight: 700; font-size: 1.2rem; color: var(--c-panic); font-family: var(--font-data); }
+
+        /* NAVIGATION BAR */
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav-btn { background: var(--c-steel-dark); border: none; padding: 10px 20px; cursor: pointer; font-family: var(--font-heading); font-weight: bold; text-transform: uppercase; }
+        .nav-btn.active { background: var(--c-ink); color: white; }
+
+        /* GRID & TICKETS */
+        #main-content { flex: 1; overflow-y: auto; padding-right: 10px; }
+        .kitchen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+        .kitchen-ticket { background: white; border-top: 6px solid black; padding: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); position: relative; }
+        .ticket-header { display: flex; justify-content: space-between; border-bottom: 2px dashed #ddd; padding-bottom: 8px; margin-bottom: 12px; }
+        .ticket-body { font-size: 1.5rem; text-transform: uppercase; margin-bottom: 16px; }
+
+        /* INPUTS & BUTTONS */
+        .chef-btn { background: white; border: 3px solid black; padding: 12px 24px; font-family: var(--font-heading); text-transform: uppercase; font-weight: 700; cursor: pointer; }
+        .chef-btn.action { background: var(--c-ink); color: white; width: 100%; margin-top: 20px; }
+        .chef-input { background: transparent; border: none; border-bottom: 3px solid black; padding: 10px; font-family: var(--font-hand); font-size: 1.2rem; width: 100%; margin-bottom: 20px; outline: none; }
+        
+        /* DATABASE TABLE STYLES */
+        .db-table { width: 100%; background: white; border-collapse: collapse; font-family: var(--font-data); }
+        .db-table th, .db-table td { border: 1px solid black; padding: 12px; text-align: left; }
+        .db-table th { background: var(--c-ink); color: white; }
+
+        .execution-mode { background: black; color: white; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 999; display: none; flex-direction: column; padding: 40px; justify-content: center; align-items: center; }
+        .execution-mode .chef-input { border-color: white; color: var(--c-tape-blue); }
+
+        .stamp-86 { color: var(--c-go); border: 4px solid var(--c-go); padding: 5px 15px; font-family: var(--font-hand); transform: rotate(-15deg); position: absolute; right: 10px; bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header class="kitchen-header">
+        <div class="brand-tape"><span class="tape-text">KITCHEN OS // GESTOPANFI</span></div>
+        <div class="stat-box">
+            <span style="font-size: 0.6rem; color: #888;">TOTAL DEUDA</span>
+            <span class="value" id="total-global">$0</span>
+        </div>
+    </header>
+
+    <div class="nav-tabs">
+        <button id="nav-inicio" class="nav-btn active" onclick="mostrarPestaña('inicio')">RESUMEN SERVICIO</button>
+        <button id="nav-db" class="nav-btn" onclick="mostrarPestaña('db')">BASE DE DATOS</button>
+        <button class="chef-btn" style="margin-left: auto; padding: 10px;" onclick="abrirModal()">+ NUEVA FACTURA</button>
+    </div>
+
+    <div id="main-content">
+        <div id="vista-inicio" class="kitchen-grid"></div>
+
+        <div id="vista-detalle" style="display:none;">
+            <button class="chef-btn" onclick="mostrarPestaña('inicio')" style="margin-bottom: 20px;">← VOLVER</button>
+            <div id="detalle-titulo" style="font-family: var(--font-hand); font-size: 2rem; margin-bottom: 20px;"></div>
+            <div id="lista-facturas" class="kitchen-grid"></div>
+        </div>
+
+        <div id="vista-db" style="display:none;">
+            <div class="kitchen-ticket" style="margin-bottom: 30px;">
+                <h2 style="margin-bottom: 15px;">AÑADIR NUEVO CLIENTE</h2>
+                <input type="text" id="db-nuevo-nombre" class="chef-input" placeholder="NOMBRE DE LA CAFETERÍA">
+                <button class="chef-btn" onclick="agregarCafeteria()">REGISTRAR EN SISTEMA</button>
+            </div>
+            <table class="db-table">
+                <thead>
+                    <tr>
+                        <th>CAFETERÍA</th>
+                        <th>ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody id="db-cuerpo-tabla"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modal-form" class="execution-mode">
+    <div style="width: 100%; max-width: 500px;">
+        <h2 style="font-family: var(--font-hand); font-size: 2rem; margin-bottom: 30px; color: var(--c-tape-blue);">NUEVA COMANDA</h2>
+        <select id="f-cafe" class="chef-input" style="background: #111; color: white;"></select>
+        <input type="text" id="f-factura" class="chef-input" placeholder="NÚMERO DE FACTURA">
+        <input type="number" id="f-monto" class="chef-input" placeholder="MONTO $">
+        <div style="display: flex; gap: 20px; align-items: end;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <input type="date" id="f-desde" class="chef-input" style="color: white;" onchange="autoCompletarHasta()">
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" class="chef-btn" style="padding: 4px 10px; font-size: 0.9rem;" onclick="setearLunes()">Lunes</button>
+                    <button type="button" class="chef-btn" style="padding: 4px 10px; font-size: 0.9rem;" onclick="setearMartes()">Martes</button>
+                </div>
+            </div>
+            <input type="date" isid="f-hasta" class="chef-input" style="color: white;">
+        </div>
+            
+        <button class="chef-btn action" onclick="guardarFactura()">ENVIAR A COCINA</button>
+        <button onclick="cerrarModal()" style="background:none; border:none; color:white; width:100%; margin-top:20px; cursor:pointer;">[ CANCELAR ]</button>
+    </div>
+</div>
+
+<script>
+    // SUPABASE CLIENT
+    const SUPABASE_URL = 'https://bjuduoggpnvwjuqqbwuz.supabase.co'; // Reemplaza con tu URL
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWR1b2dncG52d2p1cXFid3V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwOTg5MDcsImV4cCI6MjA4NDY3NDkwN30.tCtLbpj4e3KvsB3uPbg3uQiZRPpOLlswiDtWwlsZUXE'; // Reemplaza con tu anon key
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // BASE DE DATOS INICIAL
+    let facturas = [];
+    let cafeterias = [];
+
+    async function cargarDatosSupabase() {
+        // Cargar cafeterías
+        let { data: cafes, error: errorCafes } = await supabase.from('cafeterias').select('*');
+        cafeterias = cafes ? cafes.map(c => c.nombre) : [];
+        // Cargar facturas
+        let { data: facts, error: errorFacts } = await supabase.from('facturas').select('*');
+        facturas = facts || [];
+        renderInicio();
+    }
+
+    async function guardarFacturaSupabase(f) {
+        const { error } = await supabase.from('facturas').insert([f]);
+        if (!error) cargarDatosSupabase();
+    }
+
+    async function agregarCafeteriaSupabase(nombre) {
+        const { error } = await supabase.from('cafeterias').insert([{ nombre }]);
+        if (!error) cargarDatosSupabase();
+    }
+
+    async function borrarCafeteriaSupabase(nombre) {
+        const { error } = await supabase.from('cafeterias').delete().eq('nombre', nombre);
+        if (!error) cargarDatosSupabase();
+    }
+
+    function mostrarPestaña(pestaña) {
+        document.getElementById('vista-inicio').style.display = pestaña === 'inicio' ? 'grid' : 'none';
+        document.getElementById('vista-db').style.display = pestaña === 'db' ? 'block' : 'none';
+        document.getElementById('vista-detalle').style.display = 'none';
+        
+        document.getElementById('nav-inicio').className = 'nav-btn' + (pestaña === 'inicio' ? ' active' : '');
+        document.getElementById('nav-db').className = 'nav-btn' + (pestaña === 'db' ? ' active' : '');
+
+        if(pestaña === 'inicio') renderInicio();
+        if(pestaña === 'db') renderDB();
+        // Cargar datos de Supabase al iniciar
+        if (!facturas.length && !cafeterias.length) cargarDatosSupabase();
+    }
+
+ // Setear fecha de inicio al próximo lunes y autocompletar hasta sábado
+            function setearLunes() {
+                const hoy = new Date();
+                let lunes = new Date(hoy);
+                let day = hoy.getDay();
+                // Si hoy es lunes, usar hoy, si no, buscar el próximo lunes
+                let diasParaLunes = (1 - day + 7) % 7;
+                if (diasParaLunes === 0) {
+                    // Hoy es lunes
+                    lunes = hoy;
+                } else {
+                    lunes.setDate(hoy.getDate() + diasParaLunes);
+                }
+                const yyyy = lunes.getFullYear();
+                const mm = String(lunes.getMonth() + 1).padStart(2, '0');
+                const dd = String(lunes.getDate()).padStart(2, '0');
+                document.getElementById('f-desde').value = `${yyyy}-${mm}-${dd}`;
+                // Calcular sábado de esa semana
+                let sabado = new Date(lunes);
+                sabado.setDate(lunes.getDate() + 5);
+                const yyyy2 = sabado.getFullYear();
+                const mm2 = String(sabado.getMonth() + 1).padStart(2, '0');
+                const dd2 = String(sabado.getDate()).padStart(2, '0');
+                document.getElementById('f-hasta').value = `${yyyy2}-${mm2}-${dd2}`;
+            }
+
+            // Setear fecha de inicio al próximo martes y autocompletar hasta el siguiente lunes
+            function setearMartes() {
+                const hoy = new Date();
+                let martes = new Date(hoy);
+                let day = hoy.getDay();
+                // Si hoy es martes, usar hoy, si no, buscar el próximo martes
+                let diasParaMartes = (2 - day + 7) % 7;
+                if (diasParaMartes === 0) {
+                    martes = hoy;
+                } else {
+                    martes.setDate(hoy.getDate() + diasParaMartes);
+                }
+                const yyyy = martes.getFullYear();
+                const mm = String(martes.getMonth() + 1).padStart(2, '0');
+                const dd = String(martes.getDate()).padStart(2, '0');
+                document.getElementById('f-desde').value = `${yyyy}-${mm}-${dd}`;
+                // Calcular lunes siguiente
+                let lunes = new Date(martes);
+                lunes.setDate(martes.getDate() + 6);
+                const yyyy2 = lunes.getFullYear();
+                const mm2 = String(lunes.getMonth() + 1).padStart(2, '0');
+                const dd2 = String(lunes.getDate()).padStart(2, '0');
+                document.getElementById('f-hasta').value = `${yyyy2}-${mm2}-${dd2}`;
+            }
+
+    // --- LOGICA DE CAFETERIAS (DB) ---
+    function renderDB() {
+        const tabla = document.getElementById('db-cuerpo-tabla');
+        tabla.innerHTML = '';
+        cafeterias.forEach((cafe, index) => {
+            tabla.innerHTML += `<tr>
+                <td>${cafe}</td>
+                <td><button onclick="borrarCafeteria(${index})" style="color: var(--c-panic); cursor:pointer;">ELIMINAR</button></td>
+            </tr>`;
+        });
+        actualizarSelectores();
+    }
+
+    function agregarCafeteria() {
+        const nombre = document.getElementById('db-nuevo-nombre').value.toUpperCase();
+        if(!nombre) return alert("INTRODUCE UN NOMBRE");
+        agregarCafeteriaSupabase(nombre);
+        document.getElementById('db-nuevo-nombre').value = '';
+    }
+
+    function borrarCafeteria(index) {
+        if(confirm("¿ELIMINAR CAFETERÍA? ESTO NO BORRA SUS FACTURAS.")) {
+            borrarCafeteriaSupabase(cafeterias[index]);
+        }
+    }
+
+    function actualizarSelectores() {
+        const select = document.getElementById('f-cafe');
+        select.innerHTML = cafeterias.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    // --- LOGICA DE FACTURAS ---
+    function renderInicio() {
+        const grid = document.getElementById('vista-inicio');
+        grid.innerHTML = '';
+        let global = 0;
+        cafeterias.forEach(cafe => {
+            const pendientes = facturas.filter(f => f.cafe === cafe && !f.pagada);
+            const total = pendientes.reduce((s, f) => s + f.monto, 0);
+            global += total;
+            grid.innerHTML += `
+                <div class="kitchen-ticket" onclick="verDetalle('${cafe}')" style="cursor:pointer">
+                    <div class="ticket-header"><span></span><span class="mono" style="color:var(--c-panic)">${pendientes.length} PEND.</span></div>
+                    <div class="ticket-body">${cafe}</div>
+                    <div style="background:var(--c-tape-cream); padding:5px; font-family:var(--font-hand)">DEUDA: $${total}</div>
+                </div>`;
+        });
+        document.getElementById('total-global').innerText = `$${global}`;
+    }
+
+    function mostrarRangoFormateado(rango) {
+            // Si ya está en formato con día de semana, lo dejamos igual
+        if (/\d{1,2} [a-z]{3} - \d{1,2} [a-z]{3}/i.test(rango)) return rango;
+        // Si es formato antiguo: yyyy-mm-dd AL yyyy-mm-dd
+        const partes = rango.split(' AL ');
+        if (partes.length === 2) {
+            return formatearFechaRango(partes[0], partes[1]);
+        }
+            // Si es formato corto sin día de semana
+            if (/\d{1,2} [a-z]{3} - \d{1,2} [a-z]{3}/i.test(rango)) {
+                // No hay forma de saber el año, así que lo dejamos igual
+                return rango;
+            }
+            return rango;
+    }
+
+    function verDetalle(cafe) {
+        document.getElementById('vista-inicio').style.display = 'none';
+        document.getElementById('vista-detalle').style.display = 'block';
+        document.getElementById('detalle-titulo').innerText = " > " + cafe;
+        const lista = document.getElementById('lista-facturas');
+        lista.innerHTML = facturas.filter(f => f.cafe === cafe).map(f => `
+            <div class="kitchen-ticket">
+                <div class="ticket-header"><span>#${f.factura}</span><span class="mono">${mostrarRangoFormateado(f.rango)}</span></div>
+                <div class="ticket-body">$${f.monto}</div>
+                ${f.pagada
+                    ? `<span class="stamp-86">86'd (PAGADO)</span><button class="chef-btn" style="margin-top:10px;" onclick="desmarcar('${f.id}','${cafe}')">DESMARCAR</button>`
+                    : `<button class="chef-btn" onclick="pagar('${f.id}','${cafe}')">MARCAR PAGADA</button>`}
+            </div>`).join('');
+        function desmarcar(id, cafe) {
+            facturas.find(x => x.id === id).pagada = false;
+            localStorage.setItem('bear_v2_facturas', JSON.stringify(facturas));
+            verDetalle(cafe);
+        }
+    }
+
+    function formatearFechaRango(desde, hasta) {
+        const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sab'];
+        function parseFecha(fecha) {
+            const [y, m, d] = fecha.split('-');
+            const dateObj = new Date(fecha);
+            const diaSemana = dias[dateObj.getDay()];
+            return `${diaSemana} ${parseInt(d)} ${meses[parseInt(m)-1]}`;
+        }
+        if (!desde || !hasta) return '';
+        return `${parseFecha(desde)} - ${parseFecha(hasta)}`;
+    }
+
+    function guardarFactura() {
+        const desde = document.getElementById('f-desde').value;
+        const hasta = document.getElementById('f-hasta').value;
+        const f = {
+            id: Date.now().toString(),
+            cafe: document.getElementById('f-cafe').value,
+            factura: document.getElementById('f-factura').value,
+            monto: parseFloat(document.getElementById('f-monto').value) || 0,
+            rango: formatearFechaRango(desde, hasta),
+            pagada: false
+        };
+        if(f.monto <= 0) return alert("FALTAN DATOS");
+        guardarFacturaSupabase(f);
+        cerrarModal();
+        mostrarPestaña('inicio');
+    }
+
+    function autoCompletarHasta() {
+        const desde = document.getElementById('f-desde').value;
+        if (!desde) return;
+        let fecha = new Date(desde);
+        let diasAgregados = 0;
+        let diasNecesarios = 5; // 6 días en total, contando el día de inicio
+        while (diasAgregados < diasNecesarios) {
+            fecha.setDate(fecha.getDate() + 1);
+            // Si no es domingo (0 = domingo)
+            if (fecha.getDay() !== 0) {
+                diasAgregados++;
+            }
+        }
+        const yyyy = fecha.getFullYear();
+        const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+        const dd = String(fecha.getDate()).padStart(2, '0');
+        document.getElementById('f-hasta').value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    function pagar(id, cafe) {
+        facturas.find(x => x.id === id).pagada = true;
+        localStorage.setItem('bear_v2_facturas', JSON.stringify(facturas));
+        verDetalle(cafe);
+    }
+
+    function abrirModal() {
+        document.getElementById('modal-form').style.display = 'flex';
+        actualizarSelectores();
+        // Limpiar los campos del formulario
+        document.getElementById('f-cafe').selectedIndex = 0;
+        document.getElementById('f-factura').value = '';
+        document.getElementById('f-monto').value = '';
+        document.getElementById('f-desde').value = '';
+        document.getElementById('f-hasta').value = '';
+    }
+    function cerrarModal() { document.getElementById('modal-form').style.display = 'none'; }
+
+    // INICIO
+    mostrarPestaña('inicio');
+</script>
+</body>
+</html>
