@@ -523,7 +523,7 @@
             document.getElementById('detalle-titulo').innerText = " > " + cafe;
             const lista = document.getElementById('lista-facturas');
 
-            const facturasCafe = facturas.filter(f => f.cafe === cafe).sort((a, b) => b.id.localeCompare(a.id));
+            const facturasCafe = facturas.filter(f => f.cafe === cafe).sort((a, b) => String(b.id).localeCompare(String(a.id)));
 
             const pendientes = facturasCafe.filter(f => !f.pagada);
             const pagadas = facturasCafe.filter(f => f.pagada);
