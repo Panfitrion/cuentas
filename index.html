@@ -118,7 +118,7 @@
                     <button type="button" class="chef-btn" style="padding: 4px 10px; font-size: 0.9rem;" onclick="setearMartes()">Martes</button>
                 </div>
             </div>
-            <input type="date" isid="f-hasta" class="chef-input" style="color: white;">
+            <input type="date" id="f-hasta" class="chef-input" style="color: white;">
         </div>
             
         <button class="chef-btn action" onclick="guardarFactura()">ENVIAR A COCINA</button>
@@ -258,7 +258,6 @@
         select.innerHTML = cafeterias.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    // --- LOGICA DE FACTURAS ---
     function renderInicio() {
         const grid = document.getElementById('vista-inicio');
         grid.innerHTML = '';
@@ -270,7 +269,9 @@
             grid.innerHTML += `
                 <div class="kitchen-ticket" onclick="verDetalle('${cafe}')" style="cursor:pointer">
                     <div class="ticket-header"><span></span><span class="mono" style="color:var(--c-panic)">${pendientes.length} PEND.</span></div>
-                    <div class="ticket-body">${cafe}</div>
+                    <div class="ticket-body">
+                        ${cafe}
+                    </div>
                     <div style="background:var(--c-tape-cream); padding:5px; font-family:var(--font-hand)">DEUDA: $${total}</div>
                 </div>`;
         });
@@ -278,19 +279,15 @@
     }
 
     function mostrarRangoFormateado(rango) {
-            // Si ya está en formato con día de semana, lo dejamos igual
         if (/\d{1,2} [a-z]{3} - \d{1,2} [a-z]{3}/i.test(rango)) return rango;
-        // Si es formato antiguo: yyyy-mm-dd AL yyyy-mm-dd
         const partes = rango.split(' AL ');
         if (partes.length === 2) {
             return formatearFechaRango(partes[0], partes[1]);
         }
-            // Si es formato corto sin día de semana
-            if (/\d{1,2} [a-z]{3} - \d{1,2} [a-z]{3}/i.test(rango)) {
-                // No hay forma de saber el año, así que lo dejamos igual
-                return rango;
-            }
+        if (/\d{1,2} [a-z]{3} - \d{1,2} [a-z]{3}/i.test(rango)) {
             return rango;
+        }
+        return rango;
     }
 
     function verDetalle(cafe) {
@@ -298,19 +295,22 @@
         document.getElementById('vista-detalle').style.display = 'block';
         document.getElementById('detalle-titulo').innerText = " > " + cafe;
         const lista = document.getElementById('lista-facturas');
-        lista.innerHTML = facturas.filter(f => f.cafe === cafe).map(f => `
+        lista.innerHTML = facturas.filter(f => f.cafe === cafe).map(f => {
+            return `
             <div class="kitchen-ticket">
                 <div class="ticket-header"><span>#${f.factura}</span><span class="mono">${mostrarRangoFormateado(f.rango)}</span></div>
                 <div class="ticket-body">$${f.monto}</div>
                 ${f.pagada
                     ? `<span class="stamp-86">86'd (PAGADO)</span><button class="chef-btn" style="margin-top:10px;" onclick="desmarcar('${f.id}','${cafe}')">DESMARCAR</button>`
                     : `<button class="chef-btn" onclick="pagar('${f.id}','${cafe}')">MARCAR PAGADA</button>`}
-            </div>`).join('');
-        function desmarcar(id, cafe) {
-            facturas.find(x => x.id === id).pagada = false;
-            localStorage.setItem('bear_v2_facturas', JSON.stringify(facturas));
-            verDetalle(cafe);
-        }
+            </div>`;
+        }).join('');
+    }
+
+    function desmarcar(id, cafe) {
+        facturas.find(x => x.id === id).pagada = false;
+        localStorage.setItem('bear_v2_facturas', JSON.stringify(facturas));
+        verDetalle(cafe);
     }
 
     function formatearFechaRango(desde, hasta) {
@@ -348,10 +348,9 @@
         if (!desde) return;
         let fecha = new Date(desde);
         let diasAgregados = 0;
-        let diasNecesarios = 5; // 6 días en total, contando el día de inicio
+        let diasNecesarios = 5;
         while (diasAgregados < diasNecesarios) {
             fecha.setDate(fecha.getDate() + 1);
-            // Si no es domingo (0 = domingo)
             if (fecha.getDay() !== 0) {
                 diasAgregados++;
             }
@@ -371,7 +370,6 @@
     function abrirModal() {
         document.getElementById('modal-form').style.display = 'flex';
         actualizarSelectores();
-        // Limpiar los campos del formulario
         document.getElementById('f-cafe').selectedIndex = 0;
         document.getElementById('f-factura').value = '';
         document.getElementById('f-monto').value = '';
@@ -380,8 +378,10 @@
     }
     function cerrarModal() { document.getElementById('modal-form').style.display = 'none'; }
 
-    // INICIO
-    mostrarPestaña('inicio');
-</script>
-</body>
+    window.addEventListener('DOMContentLoaded', function() {
+        mostrarPestaña('inicio');
+    });
+    </script>
+    </body>
 </html>
+
