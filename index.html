@@ -8,6 +8,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Permanent+Marker&family=Roboto+Mono:wght@400;700&display=swap"
         rel="stylesheet">
+    <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -307,18 +308,32 @@
     </div>
 
     <script>
-        // SUPABASE CLIENT
+        // SUPABASE CLIENT INITIALIZATION
         const SUPABASE_URL = 'https://bjuduoggpnvwjuqqbwuz.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWR1b2dncG52d2p1cXFid3V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwOTg5MDcsImV4cCI6MjA4NDY3NDkwN30.tCtLbpj4e3KvsB3uPbg3uQiZRPpOLlswiDtWwlsZUXE';
 
-        window._supabaseClient = window._supabaseClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const supabase = window._supabaseClient;
+        let supabase = null;
+
+        try {
+            if (typeof window.supabase !== 'undefined') {
+                window._supabaseClient = window._supabaseClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                supabase = window._supabaseClient;
+            } else {
+                console.error('Supabase library not found in window.');
+            }
+        } catch (e) {
+            console.error('Error initializing Supabase client:', e);
+        }
 
         // BASE DE DATOS INICIAL
         let facturas = [];
         let cafeterias = [];
 
         async function cargarDatosSupabase() {
+            if (!supabase) {
+                alert("Error: La librería de Supabase no se cargó correctamente. Revisa tu conexión a internet.");
+                return;
+            }
             // Cargar cafeterías
             let { data: cafes, error: errorCafes } = await supabase.from('cafeterias').select('*');
             if (errorCafes) {
@@ -340,6 +355,7 @@
         }
 
         async function guardarFacturaSupabase(f) {
+            if (!supabase) return alert("Error de conexión con base de datos.");
             const { error } = await supabase.from('facturas').insert([f]);
             if (error) {
                 console.error('Error guardando factura:', error);
@@ -350,6 +366,7 @@
         }
 
         async function agregarCafeteriaSupabase(nombre) {
+            if (!supabase) return alert("Error de conexión con base de datos.");
             const { error } = await supabase.from('cafeterias').insert([{ nombre }]);
             if (error) {
                 console.error('Error agregando cafetería:', error);
@@ -360,6 +377,7 @@
         }
 
         async function borrarCafeteriaSupabase(nombre) {
+            if (!supabase) return alert("Error de conexión con base de datos.");
             const { error } = await supabase.from('cafeterias').delete().eq('nombre', nombre);
             if (error) {
                 console.error('Error borrando cafetería:', error);
@@ -375,12 +393,14 @@
             document.getElementById('vista-detalle').style.display = 'none';
             document.getElementById('nav-inicio').className = 'nav-btn' + (pestaña === 'inicio' ? ' active' : '');
             document.getElementById('nav-db').className = 'nav-btn' + (pestaña === 'db' ? ' active' : '');
+
             if (pestaña === 'inicio') renderInicio();
             if (pestaña === 'db') renderDB();
 
             // Cargar datos de Supabase si está vacío o al cambiar de pestaña para refrescar
             if (!facturas.length && !cafeterias.length) cargarDatosSupabase();
         }
+        // Expose explicitly to window to avoid reference errors
         window.mostrarPestaña = mostrarPestaña;
 
         // Setear fecha inicio
@@ -435,6 +455,7 @@
         // --- LOGICA DE CAFETERIAS (DB) ---
         function renderDB() {
             const tabla = document.getElementById('db-cuerpo-tabla');
+            if (!tabla) return; // Guard clause
             tabla.innerHTML = '';
             cafeterias.forEach((cafe, index) => {
                 tabla.innerHTML += `<tr>
@@ -460,11 +481,13 @@
 
         function actualizarSelectores() {
             const select = document.getElementById('f-cafe');
+            if (!select) return;
             select.innerHTML = cafeterias.map(c => `<option value="${c}">${c}</option>`).join('');
         }
 
         function renderInicio() {
             const grid = document.getElementById('vista-inicio');
+            if (!grid) return;
             grid.innerHTML = '';
             let global = 0;
             cafeterias.forEach(cafe => {
@@ -480,7 +503,8 @@
                     <div style="background:var(--c-tape-cream); padding:5px; font-family:var(--font-hand)">DEUDA: $${total}</div>
                 </div>`;
             });
-            document.getElementById('total-global').innerText = `$${global}`;
+            const totalElem = document.getElementById('total-global');
+            if (totalElem) totalElem.innerText = `$${global}`;
         }
 
         function mostrarRangoFormateado(rango) {
@@ -516,6 +540,8 @@
             const factura = facturas.find(x => x.id === id);
             if (factura) factura.pagada = false;
             verDetalle(cafe);
+
+            if (!supabase) return alert("Error de conexión (offline).");
 
             const { error } = await supabase.from('facturas').update({ pagada: false }).eq('id', id);
 
@@ -607,6 +633,8 @@
             if (factura) factura.pagada = true;
             verDetalle(cafe);
 
+            if (!supabase) return alert("Error de conexión (offline).");
+
             const { error } = await supabase.from('facturas').update({ pagada: true }).eq('id', id);
 
             if (error) {
@@ -630,10 +658,24 @@
         }
         function cerrarModal() { document.getElementById('modal-form').style.display = 'none'; }
 
+        // EXPOSE GLOBAL FUNCTIONS EXPLICITLY
+        window.setearLunes = setearLunes;
+        window.setearMartes = setearMartes;
+        window.autoCompletarHasta = autoCompletarHasta;
+        window.guardarFactura = guardarFactura;
+        window.abrirModal = abrirModal;
+        window.cerrarModal = cerrarModal;
+        window.borrarCafeteria = borrarCafeteria;
+        window.agregarCafeteria = agregarCafeteria;
+        window.verDetalle = verDetalle;
+        window.pagar = pagar;
+        window.desmarcar = desmarcar;
+
         window.addEventListener('DOMContentLoaded', function () {
             mostrarPestaña('inicio');
         });
     </script>
+
 </body>
 
 </html>
