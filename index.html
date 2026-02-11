@@ -289,7 +289,7 @@
             <div style="display: flex; gap: 20px; align-items: end;">
                 <div style="display: flex; flex-direction: column; gap: 6px;">
                     <input type="date" id="f-desde" class="chef-input" style="color: white;"
-                        onchange="autoCompletarHasta()">
+                        onchange="autoCompletarHasta()" onclick="try{this.showPicker()}catch(e){}">
                     <div style="display: flex; gap: 6px;">
                         <button type="button" class="chef-btn" style="padding: 4px 10px; font-size: 0.9rem;"
                             onclick="setearLunes()">Lunes</button>
@@ -297,7 +297,8 @@
                             onclick="setearMartes()">Martes</button>
                     </div>
                 </div>
-                <input type="date" id="f-hasta" class="chef-input" style="color: white;">
+                <input type="date" id="f-hasta" class="chef-input" style="color: white;"
+                    onclick="try{this.showPicker()}catch(e){}">
             </div>
 
             <button class="chef-btn action" onclick="guardarFactura()">ENVIAR A COCINA</button>
