@@ -165,15 +165,14 @@
         document.getElementById('vista-inicio').style.display = pestaña === 'inicio' ? 'grid' : 'none';
         document.getElementById('vista-db').style.display = pestaña === 'db' ? 'block' : 'none';
         document.getElementById('vista-detalle').style.display = 'none';
-        
         document.getElementById('nav-inicio').className = 'nav-btn' + (pestaña === 'inicio' ? ' active' : '');
         document.getElementById('nav-db').className = 'nav-btn' + (pestaña === 'db' ? ' active' : '');
-
         if(pestaña === 'inicio') renderInicio();
         if(pestaña === 'db') renderDB();
         // Cargar datos de Supabase al iniciar
         if (!facturas.length && !cafeterias.length) cargarDatosSupabase();
     }
+    window.mostrarPestaña = mostrarPestaña;
 
  // Setear fecha de inicio al próximo lunes y autocompletar hasta sábado
             function setearLunes() {
