@@ -312,12 +312,12 @@
         const SUPABASE_URL = 'https://bjuduoggpnvwjuqqbwuz.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWR1b2dncG52d2p1cXFid3V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwOTg5MDcsImV4cCI6MjA4NDY3NDkwN30.tCtLbpj4e3KvsB3uPbg3uQiZRPpOLlswiDtWwlsZUXE';
 
-        let supabase = null;
+        let supabaseClient = null;
 
         try {
             if (typeof window.supabase !== 'undefined') {
                 window._supabaseClient = window._supabaseClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                supabase = window._supabaseClient;
+                supabaseClient = window._supabaseClient;
             } else {
                 console.error('Supabase library not found in window.');
             }
@@ -330,12 +330,12 @@
         let cafeterias = [];
 
         async function cargarDatosSupabase() {
-            if (!supabase) {
+            if (!supabaseClient) {
                 alert("Error: La librería de Supabase no se cargó correctamente. Revisa tu conexión a internet.");
                 return;
             }
             // Cargar cafeterías
-            let { data: cafes, error: errorCafes } = await supabase.from('cafeterias').select('*');
+            let { data: cafes, error: errorCafes } = await supabaseClient.from('cafeterias').select('*');
             if (errorCafes) {
                 console.error('Error cargando cafeterias:', errorCafes);
                 alert('Error cargando cafeterías. Revisa la conexión.');
@@ -343,7 +343,7 @@
             cafeterias = cafes ? cafes.map(c => c.nombre) : [];
 
             // Cargar facturas
-            let { data: facts, error: errorFacts } = await supabase.from('facturas').select('*');
+            let { data: facts, error: errorFacts } = await supabaseClient.from('facturas').select('*');
             if (errorFacts) {
                 console.error('Error cargando facturas:', errorFacts);
                 alert('Error cargando facturas. Revisa la conexión.');
@@ -355,8 +355,8 @@
         }
 
         async function guardarFacturaSupabase(f) {
-            if (!supabase) return alert("Error de conexión con base de datos.");
-            const { error } = await supabase.from('facturas').insert([f]);
+            if (!supabaseClient) return alert("Error de conexión con base de datos.");
+            const { error } = await supabaseClient.from('facturas').insert([f]);
             if (error) {
                 console.error('Error guardando factura:', error);
                 alert('Error al guardar: ' + error.message);
@@ -366,8 +366,8 @@
         }
 
         async function agregarCafeteriaSupabase(nombre) {
-            if (!supabase) return alert("Error de conexión con base de datos.");
-            const { error } = await supabase.from('cafeterias').insert([{ nombre }]);
+            if (!supabaseClient) return alert("Error de conexión con base de datos.");
+            const { error } = await supabaseClient.from('cafeterias').insert([{ nombre }]);
             if (error) {
                 console.error('Error agregando cafetería:', error);
                 alert('Error al agregar: ' + error.message);
@@ -377,8 +377,8 @@
         }
 
         async function borrarCafeteriaSupabase(nombre) {
-            if (!supabase) return alert("Error de conexión con base de datos.");
-            const { error } = await supabase.from('cafeterias').delete().eq('nombre', nombre);
+            if (!supabaseClient) return alert("Error de conexión con base de datos.");
+            const { error } = await supabaseClient.from('cafeterias').delete().eq('nombre', nombre);
             if (error) {
                 console.error('Error borrando cafetería:', error);
                 alert('Error al borrar: ' + error.message);
@@ -541,9 +541,9 @@
             if (factura) factura.pagada = false;
             verDetalle(cafe);
 
-            if (!supabase) return alert("Error de conexión (offline).");
+            if (!supabaseClient) return alert("Error de conexión (offline).");
 
-            const { error } = await supabase.from('facturas').update({ pagada: false }).eq('id', id);
+            const { error } = await supabaseClient.from('facturas').update({ pagada: false }).eq('id', id);
 
             if (error) {
                 console.error('Error al desmarcar:', error);
@@ -633,9 +633,9 @@
             if (factura) factura.pagada = true;
             verDetalle(cafe);
 
-            if (!supabase) return alert("Error de conexión (offline).");
+            if (!supabaseClient) return alert("Error de conexión (offline).");
 
-            const { error } = await supabase.from('facturas').update({ pagada: true }).eq('id', id);
+            const { error } = await supabaseClient.from('facturas').update({ pagada: true }).eq('id', id);
 
             if (error) {
                 console.error('Error al pagar:', error);
